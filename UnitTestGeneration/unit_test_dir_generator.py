@@ -6,7 +6,7 @@ import unit_test_src_generator
 class unit_test_dir_generator():
 
    def __init__(self):
-      self.__top_level_dir = "/home/mchalfant/core"
+      self.__top_level_dir = "/home/mchalfant/ExampleProject"
       self.__src_level_dir = self.__top_level_dir + "/src"
       self.__pattern = r"^((?!common)(?!tools)(?!libraries).)*$"
       self.__pattern_2 = r"[\w-]+\.+cpp"
@@ -37,12 +37,13 @@ class unit_test_dir_generator():
       cwd = os.getcwd()
 
       for dirpath in dirpaths:
-         new_dirpaths.append(dirpath.replace("src", "test"))
+         if(dirpath[-7:-1] != "global"):
+            new_dirpaths.append(dirpath.replace("src", "test"))
 
-      with open(cwd + "/UnitTestGeneration/" + "TestMain.cpp", "r") as test_main:
+      with open(cwd + "/TestMain.cpp", "r") as test_main:
          test_main_data = test_main.readlines()
 
-      with open(cwd + "/UnitTestGeneration/" + "makefile", "r") as make_file:
+      with open(cwd + "/makefile", "r") as make_file:
          make_file_data = make_file.readlines()
 
       for new_dirpath in new_dirpaths:

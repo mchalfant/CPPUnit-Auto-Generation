@@ -6,14 +6,16 @@ class unit_test_src_generator():
 
     def __init__(self, dirpath, filename):
         self.__src__declaration_pattern = r".*\)(\n|{)"
-        self.__exclude_from_global_search = r"^(((?!utilities)(?!Utilities).)*$"
+        self.__exclude_from_global_search = r"^((?!utilities).)*$"
         self.__separate_header_abstraction = r"(private:|public:)[\s\S]*?(?=\n.*?=|}|(private:|public:))"
         self.__get_methods_pattern = r".*\(.*\);"
         self.__include_header_pattern = r"(.*.h\"|.*>)"
         
-        self.__source_file_path = dirpath.replace("src", "test")
-        # Goes up two level for global headers
-        self.__header_file_path = dirpath + "/../.." 
+        self.__source_file_path = dirpath.replace("test", "src")
+
+        # Getting global Directory
+        dir_arr = re.split(r"/",self.__source_file_path)
+        self.__header_file_path =  "/".join(dir_arr[:-2])
         self.__unit_test_path = dirpath
         self.__header_full_file_path = ""
         self.__desired_header_full_path = ""
@@ -25,14 +27,14 @@ class unit_test_src_generator():
 
 
     def get_header_file(self):
-        if(re.search(self.__exclude_from_global_search, self.__header_file_path)):
-            self.__header_full_file_path = self.__header_file_path + "global/"                             \
+        if(re.search(self.__exclude_from_global_search, self.__header_file_path, re.IGNORECASE)):
+            self.__header_full_file_path = self.__header_file_path + "/global/"                             \
                  + self.__source_dir_name + ".h"
             self.__desired_header_full_path = self.__header_full_file_path
         else:
             self.__header_full_file_path = self.__header_file_path +                                       \
                 self.__source_dir_name + self.__source_dir_name + ".h"      
-            self.__desired_header_full_path = self.__header_file_path + "Utilities.h"
+            self.__desired_header_full_path = self.__header_file_path + "/Utilities.h"
 
     #Not Sure: How to implement nested classes
     def get_header_declarations(self):
@@ -92,56 +94,58 @@ class unit_test_src_generator():
             
             new_unit_test.write("   //Arrange\n")
             # Return Data Type
-            if (decl_arr[0] != "void"):
-                new_unit_test.write("   " + decl_arr[0] + " expected = 0;\n")
-            elif (re.search(r"(^|,)\*.*,", decl_arr[2])):
-                new_unit_test.write("   " + decl_arr[2] + " expected;\n")
+            if (decl_arr[0][0] != "void"):
+                new_unit_test.write("   " + decl_arr[0][0] + " expected = 0;\n")
             else:
                 new_unit_test.write("\n")
             # Argument Lines
-            for index in range(len(decl_arr[2:])):
-                new_unit_test.write("   " + decl_arr[index + 2] +" itemUnderTest" + str(index + 2) + "\n")
+            if (decl_arr[0][2] != "void" or decl_arr[0][2] != ")"):
+                for index in range(len(decl_arr[2:-1])):
+                   new_unit_test.write("   " + decl_arr[index + 2] +                            \
+                                       " itemUnderTest" + str(index + 2) + "\n")
+            else:
+                new_unit_test.write("\n")
             
             new_unit_test.write("   //Act\n")
             if (decl_arr[0] != "void"):
                 arg_list = ""
-                new_unit_test.write("   " + self.__source_file_path.lower() +                                       \
-                                    "Obj->" + decl_arr[1] + "( ")
-                for index in range(len(decl_arr[2:])):
-                    if (index == len(decl_arr[2:])):
-                        arg_list += "itemUnderTest );\n\n"
+                new_unit_test.write("   " + self.__source_dir_name.lower() +                                       \
+                                    "Obj->" + decl_arr[0][1] )
+                for index in range(len(decl_arr[0][2:-1])):
+                    if (index == len(decl_arr[0][2:-1]) - 1):
+                        arg_list += "itemUnderTest" + str(index) + " );\n\n"
                     else:
-                        arg_list += "itemUnderTest" + index + ", "
+                        arg_list += "itemUnderTest" + str(index) + ", "
                 new_unit_test.write( arg_list )
             else:
-                new_unit_test.write("   " + decl_arr[0] + self.__source_file_path.lower() +                         \
-                                    "Obj->" + decl_arr[1] + "();\n\n")
+                new_unit_test.write("   " + decl_arr[0][0] + self.__source_dir_name.lower() +                         \
+                                    "Obj->" + decl_arr[0][1] + "();\n\n")
             
             new_unit_test.write("   //Assert\n")
-            if (re.search(r"( bool.* | int.* | char.* )", decl_arr[0])):
+            if (re.search(r"( bool.* | int.* | char.* )", decl_arr[0][0])):
                 new_unit_test.write("   CPPUNIT_ASSERT_EQUAL(expected, actual);\n\n")
-            elif (re.search(r"( double.* | float.* )", decl_arr[0])):
+            elif (re.search(r"( double.* | float.* )", decl_arr[0][0])):
                 new_unit_test.write("   CPPUNIT_ASSERT_DOUBLES_EQUAL(expected, actual, DELTA);\n\n")
             else:
-                new_unit_test.write("   CPPUNIT_ASSERT_MESSAGE(\"test" + decl_arr[1] + \
+                new_unit_test.write("   CPPUNIT_ASSERT_MESSAGE(\"test" + decl_arr[0][1] + \
                                     " test not fully implemented\", true);\n\n")
             new_unit_test.write("};\n\n")
 
     def unit_test_generation(self, arr):
         initial_header = []
-        makefile_path = os.getcwd() + "/UnitTestGeneration"
+        test_main_path = os.getcwd()
 
-        with open(makefile_path + "makefile", "r") as make_file:
+        with open(test_main_path + "/TestMain.cpp", "r") as test_main_path:
             for i in range(14):
-                initial_header.append(make_file.readline())
+                initial_header.append(test_main_path.readline())
 
         with open(self.__new_unit_test, "w+") as new_unit_test:
             # Initial Header File Setup
             for i in range(14):
-                new_unit_test.write(initial_header)
+                new_unit_test.write(initial_header[i])
             new_unit_test.write("\n")
-            for item in range(arr[1][0]):
-                new_unit_test.write(item)
+            for index in range(len(arr[1][0])):
+                new_unit_test.write(arr[1][0][index])
             new_unit_test.write("\n")
             new_unit_test.write("#define DELTA 0.1\n")
             new_unit_test.write("\n")
@@ -151,37 +155,38 @@ class unit_test_src_generator():
 
             #Test Class Initialization
             new_unit_test.write("class Test" + self.__source_dir_name + " : public CppUnit::TestFixture\n{\n")
-            new_unit_test.write("   CPPUNIT_TEST_SUITE(Test" + self.__source_file_path + ");\n")
+            new_unit_test.write("   CPPUNIT_TEST_SUITE(Test" + self.__source_dir_name + ");\n")
             #TODO: Figure out a way to autogenerate Parameterized Tests
-            for item in range(arr[0]):
-                decl_arr = re.split(r"( |.*\(\))",item)
-                new_unit_test.write("   CPPUNIT_TEST(test" + decl_arr[1] + ")\n")
+            for index in range(len(arr[0])):
+                decl_arr = re.split(r"(\s|;|\))", arr[0][index])
+                decl_arr = self.filter_out_white_space(decl_arr)
+                new_unit_test.write("   CPPUNIT_TEST(test" + decl_arr[0][1] + ")\n")
             new_unit_test.write("   CPPUNIT_TEST_SUITE_END();\n\n")
 
             new_unit_test.write("   public:\n")
             new_unit_test.write("      void setUp(void);\n")
             new_unit_test.write("      void tearDown(void);\n\n")
             new_unit_test.write("   protected:\n")
-            for item in range(arr[0]):
-                decl_arr = re.split(r"( |\(|\))",item)
+            for index in range(len(arr[0])):
+                decl_arr = re.split(r"( |\(|\))",arr[0][index])
                 new_unit_test.write("      void test" + decl_arr[1] + "( void );\n")
             new_unit_test.write("\n")
             new_unit_test.write("   private:\n")
-            new_unit_test.write("      " + self.__source_file_path + "* " + \
-                self.__source_file_path.lower() + "Obj;\n};\n\n")
+            new_unit_test.write("      " + self.__source_dir_name + "* " + \
+                self.__source_dir_name.lower() + "Obj;\n};\n\n")
 
             # Set Up and Tear Down methods
             new_unit_test.write("/*<===============================================>*/\n")
             new_unit_test.write("/*                SETUP and TEARDOWN               */\n")
             new_unit_test.write("/*<===============================================>*/\n\n")
 
-            new_unit_test.write("void Test" + self.__source_file_path + "::setUp(void)\n{\n")
-            new_unit_test.write("   " + self.__source_file_path.lower() + "= new " + self.__source_file_path + "();\n")
-            new_unit_test.write("   printf(\"<==================== Starting Test =====================>\");\n}\n")
+            new_unit_test.write("void Test" + self.__source_dir_name + "::setUp(void)\n{\n")
+            new_unit_test.write("   " + self.__source_dir_name.lower() + "Obj = new " + self.__source_dir_name + "();\n")
+            new_unit_test.write("   printf(\"<==================== Starting Test =====================>\");\n}\n\n")
 
-            new_unit_test.write("void Test" + self.__source_file_path + "::tearDown(void)\n{\n")
-            new_unit_test.write("   delete " + self.__source_file_path.lower() + ";\n")
-            new_unit_test.write("   printf(\"<==================== Finishing Test ====================>\");\n}\n")
+            new_unit_test.write("void Test" + self.__source_dir_name + "::tearDown(void)\n{\n")
+            new_unit_test.write("   delete " + self.__source_dir_name.lower() + "Obj;\n")
+            new_unit_test.write("   printf(\"<==================== Finishing Test ====================>\");\n}\n\n")
 
             new_unit_test.write("/*<===============================================>*/\n")
             new_unit_test.write("/*                 UNIT TEST SETUP                 */\n")
@@ -190,25 +195,35 @@ class unit_test_src_generator():
         # Generating Unit Test Functions
         # Need to figure out a way to
         f = open(self.__new_unit_test, "a+")
-        for item in range(arr[0]):
-            decl_arr = re.split(r"( |\(|\))", item)
+        for index in range(len(arr[0])):
+            decl_arr = re.split(r"(\s|;|\))", arr[0][index])
+            decl_arr = self.filter_out_white_space(decl_arr)
             if(decl_arr[0] == "bool"):
-                f.write("void Test" + self.__source_dir_name + "::test" + item[1] + "Success( void )\n{\n")
+                f.write("void Test" + self.__source_dir_name + "::test" + decl_arr[1] + "Success( void )\n{\n")
                 f.close()
                 self.unit_test_gen(decl_arr)
                 f = open(self.__new_unit_test, "a+")
-                f.write("void Test" + self.__source_dir_name + "::test" + item[1] + "Failure( void )\n{\n")
+                f.write("void Test" + self.__source_dir_name + "::test" + decl_arr[1] + "Failure( void )\n{\n")
                 f.close()
                 self.unit_test_gen(decl_arr)
                 f = open(self.__new_unit_test, "a+")
             else:
-                new_unit_test.write("void Test" + self.__source_dir_name + "::test" + item[1] + "( void )\n{\n")
+                f.write("void Test" + self.__source_dir_name + "::test" + decl_arr[1] + "( void )\n{\n")
                 f.close()
                 self.unit_test_gen(decl_arr)
                 f = open(self.__new_unit_test, "a+")
 
         f.write("CPPUNIT_TEST_SUITE_REGISTRATION( Test" + self.__source_dir_name + " );")
         f.close()
+
+    def filter_out_white_space(self, *decl_arr):
+        new_decl_arr = []
+        for index in range(len(decl_arr[0])):
+            if (not((decl_arr[0][index] == "") or (decl_arr[0][index] == " ") or \
+                (decl_arr[0][index] == "\n") or (decl_arr[0][index] == ";"))):
+                new_decl_arr.append(decl_arr[0][index])
+        return new_decl_arr
+
 
     #Main Functions
     def write_unit_test(self):
