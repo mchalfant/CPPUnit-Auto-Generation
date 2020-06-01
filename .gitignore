@@ -1,0 +1,4 @@
+./UnitTestGeneration/__pycache__/*
+*.swp
+*.swo
+*.o
