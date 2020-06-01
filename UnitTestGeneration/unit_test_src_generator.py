@@ -158,9 +158,9 @@ class unit_test_src_generator():
             new_unit_test.write("   CPPUNIT_TEST_SUITE(Test" + self.__source_dir_name + ");\n")
             #TODO: Figure out a way to autogenerate Parameterized Tests
             for index in range(len(arr[0])):
-                decl_arr = re.split(r"(\s|;|\))", arr[0][index])
-                decl_arr = self.filter_out_white_space(decl_arr)
-                new_unit_test.write("   CPPUNIT_TEST(test" + decl_arr[0][1] + ")\n")
+                decl_arr = re.split(r"( |\(|\))", arr[0][index])
+                format_arr = self.filter_out_white_space(decl_arr)
+                new_unit_test.write("   CPPUNIT_TEST(test" + format_arr[1] + ")\n")
             new_unit_test.write("   CPPUNIT_TEST_SUITE_END();\n\n")
 
             new_unit_test.write("   public:\n")
@@ -169,7 +169,8 @@ class unit_test_src_generator():
             new_unit_test.write("   protected:\n")
             for index in range(len(arr[0])):
                 decl_arr = re.split(r"( |\(|\))",arr[0][index])
-                new_unit_test.write("      void test" + decl_arr[1] + "( void );\n")
+                format_arr = self.filter_out_white_space(decl_arr)
+                new_unit_test.write("      void test" + format_arr[1] + "( void );\n")
             new_unit_test.write("\n")
             new_unit_test.write("   private:\n")
             new_unit_test.write("      " + self.__source_dir_name + "* " + \
@@ -197,18 +198,18 @@ class unit_test_src_generator():
         f = open(self.__new_unit_test, "a+")
         for index in range(len(arr[0])):
             decl_arr = re.split(r"(\s|;|\))", arr[0][index])
-            decl_arr = self.filter_out_white_space(decl_arr)
+            format_arr = self.filter_out_white_space(decl_arr)
             if(decl_arr[0] == "bool"):
-                f.write("void Test" + self.__source_dir_name + "::test" + decl_arr[1] + "Success( void )\n{\n")
+                f.write("void Test" + self.__source_dir_name + "::test" + format_arr[1][:-1] + "Success( void )\n{\n")
                 f.close()
                 self.unit_test_gen(decl_arr)
                 f = open(self.__new_unit_test, "a+")
-                f.write("void Test" + self.__source_dir_name + "::test" + decl_arr[1] + "Failure( void )\n{\n")
+                f.write("void Test" + self.__source_dir_name + "::test" + format_arr[1][:-1] + "Failure( void )\n{\n")
                 f.close()
                 self.unit_test_gen(decl_arr)
                 f = open(self.__new_unit_test, "a+")
             else:
-                f.write("void Test" + self.__source_dir_name + "::test" + decl_arr[1] + "( void )\n{\n")
+                f.write("void Test" + self.__source_dir_name + "::test" + format_arr[1][:-1] + "( void )\n{\n")
                 f.close()
                 self.unit_test_gen(decl_arr)
                 f = open(self.__new_unit_test, "a+")
