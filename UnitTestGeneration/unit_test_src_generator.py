@@ -91,43 +91,48 @@ class unit_test_src_generator():
     # Declaration Array - 0: Return Data Type | 1: Function Name | 2 and greater argument list
     def unit_test_gen(self, *decl_arr):  
         with open(self.__new_unit_test, "a+") as new_unit_test:
-            
+            decl_arr = self.filter_out_white_space(decl_arr[0])
             new_unit_test.write("   //Arrange\n")
             # Return Data Type
-            if (decl_arr[0][0] != "void"):
-                new_unit_test.write("   " + decl_arr[0][0] + " expected = 0;\n")
+            if (decl_arr[0] != "void"):
+                new_unit_test.write("   " + decl_arr[0] + " expected = 0;\n")
             else:
                 new_unit_test.write("\n")
             # Argument Lines
-            if (decl_arr[0][2] != "void" or decl_arr[0][2] != ")"):
+            if (decl_arr[2] == 'void' or decl_arr[2] == ')'):
+                new_unit_test.write("\n")
+            else:
                 for index in range(len(decl_arr[2:-1])):
                    new_unit_test.write("   " + decl_arr[index + 2] +                            \
-                                       " itemUnderTest" + str(index + 2) + "\n")
-            else:
-                new_unit_test.write("\n")
+                                       " itemUnderTest" + str(index) + ";\n")
             
             new_unit_test.write("   //Act\n")
             if (decl_arr[0] != "void"):
                 arg_list = ""
-                new_unit_test.write("   " + self.__source_dir_name.lower() +                                       \
-                                    "Obj->" + decl_arr[0][1] )
-                for index in range(len(decl_arr[0][2:-1])):
-                    if (index == len(decl_arr[0][2:-1]) - 1):
-                        arg_list += "itemUnderTest" + str(index) + " );\n\n"
-                    else:
-                        arg_list += "itemUnderTest" + str(index) + ", "
-                new_unit_test.write( arg_list )
+                new_unit_test.write("   "  + decl_arr[0] + " actual = " + self.__source_dir_name[0].lower()               \
+                                    + self.__source_dir_name[1:] +  "Obj->" + decl_arr[1] )
+                if (decl_arr[2] == "void" or decl_arr[2] == ")"):
+                    new_unit_test.write(");\n\n")
+                else:
+                    for index in range(len(decl_arr[2:-1])):
+                        if(decl_arr[index] == "const"):
+                            pass
+                        elif (index == len(decl_arr[2:-1]) - 1):
+                            arg_list += "itemUnderTest" + str(index) + " );\n\n"
+                        else:
+                            arg_list += "itemUnderTest" + str(index) + ", "
+                    new_unit_test.write( arg_list )
             else:
-                new_unit_test.write("   " + decl_arr[0][0] + self.__source_dir_name.lower() +                         \
-                                    "Obj->" + decl_arr[0][1] + "();\n\n")
+                new_unit_test.write("   " + decl_arr[0] + " " + self.__source_dir_name[0].lower() +              \
+                                    self.__source_dir_name[1:] + "Obj->" + decl_arr[1][:-1] + "();\n\n")
             
             new_unit_test.write("   //Assert\n")
-            if (re.search(r"( bool.* | int.* | char.* )", decl_arr[0][0])):
+            if (re.search(r"(bool.*|int.*|char.*)", decl_arr[0])):
                 new_unit_test.write("   CPPUNIT_ASSERT_EQUAL(expected, actual);\n\n")
-            elif (re.search(r"( double.* | float.* )", decl_arr[0][0])):
+            elif (re.search(r"(double.*|float.*)", decl_arr[0])):
                 new_unit_test.write("   CPPUNIT_ASSERT_DOUBLES_EQUAL(expected, actual, DELTA);\n\n")
             else:
-                new_unit_test.write("   CPPUNIT_ASSERT_MESSAGE(\"test" + decl_arr[0][1] + \
+                new_unit_test.write("   CPPUNIT_ASSERT_MESSAGE(\"test" + decl_arr[1][:-1] +                           \
                                     " test not fully implemented\", true);\n\n")
             new_unit_test.write("};\n\n")
 
@@ -174,7 +179,7 @@ class unit_test_src_generator():
             new_unit_test.write("\n")
             new_unit_test.write("   private:\n")
             new_unit_test.write("      " + self.__source_dir_name + "* " + \
-                self.__source_dir_name.lower() + "Obj;\n};\n\n")
+                self.__source_dir_name[0].lower() + self.__source_dir_name[1:] + "Obj;\n};\n\n")
 
             # Set Up and Tear Down methods
             new_unit_test.write("/*<===============================================>*/\n")
@@ -182,11 +187,11 @@ class unit_test_src_generator():
             new_unit_test.write("/*<===============================================>*/\n\n")
 
             new_unit_test.write("void Test" + self.__source_dir_name + "::setUp(void)\n{\n")
-            new_unit_test.write("   " + self.__source_dir_name.lower() + "Obj = new " + self.__source_dir_name + "();\n")
+            new_unit_test.write("   " + self.__source_dir_name[0].lower() + self.__source_dir_name[1:] + "Obj = new " + self.__source_dir_name + "();\n")
             new_unit_test.write("   printf(\"<==================== Starting Test =====================>\");\n}\n\n")
 
             new_unit_test.write("void Test" + self.__source_dir_name + "::tearDown(void)\n{\n")
-            new_unit_test.write("   delete " + self.__source_dir_name.lower() + "Obj;\n")
+            new_unit_test.write("   delete " + self.__source_dir_name[0].lower() + self.__source_dir_name[1:] + "Obj;\n")
             new_unit_test.write("   printf(\"<==================== Finishing Test ====================>\");\n}\n\n")
 
             new_unit_test.write("/*<===============================================>*/\n")
